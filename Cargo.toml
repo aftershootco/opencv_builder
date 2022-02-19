@@ -1,0 +1,16 @@
+[package]
+name = "opencv_build"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+cmake = "0.1.48"
+
+[features]
+default = ["static-link","imgproc","imgcodecs","build-opencv"]
+imgcodecs = []
+imgproc = []
+build-opencv = []
+static-link = []
