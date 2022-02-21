@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 #[cfg(feature = "imgproc")]
 static IMGPROC: &str = "ON";
@@ -21,20 +18,6 @@ static DYNAMIC_LINK: &str = "ON";
 
 fn out_dir() -> PathBuf {
     PathBuf::from(std::env::var("OUT_DIR").unwrap())
-}
-
-fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
-    fs::create_dir_all(&dst)?;
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        if ty.is_dir() {
-            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
-        } else {
-            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
-        }
-    }
-    Ok(())
 }
 
 fn build_opencv<P: AsRef<Path>>(src_path: P) {
@@ -161,19 +144,56 @@ fn build_opencv<P: AsRef<Path>>(src_path: P) {
             .uses_cxx11()
             .build();
     }
-
-    let out_dir = out_dir();
-    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
-    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
-    let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    let lib_dir = out_dir.join("lib");
-    let local_lib = manifest_dir
-        .join("opencv_libs")
-        .join(target_os)
-        .join(target_arch);
-    copy_dir_all(lib_dir, local_lib).unwrap();
 }
 
 fn main() {
     build_opencv(Path::new(".").join("opencv"));
+    let out_dir = out_dir();
+    let rustc_link = if DYNAMIC_LINK.eq("OFF") {
+        "cargo:rustc-link-lib=static"
+    } else {
+        "cargo:rustc-link-lib"
+    };
+    #[cfg(target_os = "macos")]
+    {
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_dir.join("lib").display()
+        );
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_dir
+                .join("lib")
+                .join("opencv4")
+                .join("3rdparty")
+                .display()
+        );
+        println!("cargo:rustc-link-lib=framework=AppKit");
+        println!("{}=libopenjp2", rustc_link);
+        println!("{}=opencv_core", rustc_link);
+        println!("{}=opencv_imgcodecs", rustc_link);
+        println!("{}=opencv_imgproc", rustc_link);
+        println!("{}=tegra_hal", rustc_link);
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_dir.join("lib").display()
+        );
+        println!(
+            "cargo:rustc-link-search=native={}",
+            out_dir
+                .join("lib")
+                .join("opencv4")
+                .join("3rdparty")
+                .display()
+        );
+        println!("{}=libopenjp2", rustc_link);
+        println!("{}=opencv_core", rustc_link);
+        println!("{}=opencv_imgcodecs", rustc_link);
+        println!("{}=opencv_imgproc", rustc_link);
+        println!("{}=tegra_hal", rustc_link);
+    }
 }
