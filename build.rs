@@ -182,18 +182,8 @@ fn main() {
             "cargo:rustc-link-search=native={}",
             out_dir.join("lib").display()
         );
-        println!(
-            "cargo:rustc-link-search=native={}",
-            out_dir
-                .join("lib")
-                .join("opencv4")
-                .join("3rdparty")
-                .display()
-        );
-        println!("{}=libopenjp2", rustc_link);
         println!("{}=opencv_core", rustc_link);
         println!("{}=opencv_imgcodecs", rustc_link);
         println!("{}=opencv_imgproc", rustc_link);
-        println!("{}=tegra_hal", rustc_link);
     }
 }
